@@ -83,6 +83,42 @@ int main(int argc, char** argv) {
     if (argc >= 3) num_workers = stoi(argv[2]);
     string input = "data/input.txt";
 
+    // -------------------------------------------------
+// Ping mode: simple connectivity + JSON test
+// -------------------------------------------------
+if (mode == "ping") {
+    int port = 9000;
+    int server_fd = create_server_socket(port);
+    if (server_fd < 0) {
+        cerr << "[master] failed to create server socket\n";
+        return 1;
+    }
+
+    cout << "[master] (PING MODE) listening on port " << port << "\n";
+
+    sockaddr_in cli; socklen_t len = sizeof(cli);
+    int cfd = accept(server_fd, (sockaddr*)&cli, &len);
+    if (cfd < 0) {
+        perror("accept");
+        return 1;
+    }
+
+    auto ch = make_tcp_channel(cfd);
+    cout << "[master] Worker connected, waiting for ping...\n";
+
+    json msg;
+    ch->recv_json(msg);
+    cout << "[master] received: " << msg.dump() << "\n";
+
+    json reply;
+    reply["reply"] = "pong";
+    ch->send_json(reply);
+    cout << "[master] sent pong\n";
+
+    return 0;
+}
+
+
     ensure_dirs();
     write_tasks_from_input(input, 3);
 
